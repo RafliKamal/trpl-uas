@@ -49,7 +49,7 @@ class UserController extends Controller
 
     public function store(Request $request)
     {
-        $dataUser = new User();
+        
 
         $ruless = [
             'userId' => 'required|unique:users,userId',
@@ -93,12 +93,6 @@ class UserController extends Controller
             'roleName' => $request->roleName,
             'statusLogin' => 'offline'
         ]);
-
-        $dataUser->userId = $request->userId;
-        $dataUser->password = Hash::make($request->password);
-        $dataUser->roleName = $request->roleName;
-        $dataUser->statusLogin = 'offline';
-        $post=$dataUser->save();
 
         // Tambahkan ke tabel role terkait
         if ($request->roleName === 'mahasiswa') {

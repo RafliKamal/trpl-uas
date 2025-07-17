@@ -15,8 +15,7 @@ class AuthController extends Controller
 {
     public function register(Request $request)
     {
-        $datauser = new User();
-
+       
         $rules = [
             'userId' => 'required|unique:users,userId',
             'password' => 'required',
@@ -39,10 +38,7 @@ class AuthController extends Controller
             'statusLogin' => 'offline'
         ]);
         
-        $datauser->userId = $request->userId;
-        $datauser->password = Hash::make($request->password);
-        $datauser->roleName = $request->roleName;
-        $datauser->statusLogin = 'offline';
+   
 
         // Tambahkan ke tabel role terkait
         if ($request->roleName === 'mahasiswa') {

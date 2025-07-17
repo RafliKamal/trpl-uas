@@ -43,7 +43,7 @@ Route::middleware(['auth'])->group(function () {
 
 // Route::post('/session', [SessionController::class, 'login']);
 // Route::post('/register', [SessionController::class, 'register']);
-// Route::post('/logout', [SessionController::class, 'logout']);
+Route::post('/logout', [SessionController::class, 'logout']);
 
 // Route::get('/users', [UserController::class, 'index'])->name('users.index');
 // Route::get('/users/create', [UserController::class, 'create'])->name('users.create');

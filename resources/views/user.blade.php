@@ -74,7 +74,7 @@
                    @php
                            
                         @endphp
-                        @foreach ($users['data'] as $data)  
+                        @foreach ($users as $data)  
                         <tr>    
                             <td>{{ $data['id'] }}</td>
                             <td>{{ $data['userId'] }}</td>

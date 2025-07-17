@@ -54,10 +54,10 @@ Route::post('/users', [UserController::class, 'store']);
 
 
 
-// Route::middleware('auth:sanctum')->group(function () {
-//     Route::post('/logout', [AuthController::class, 'logout']);    
-//     Route::put('/update-role', [AuthController::class, 'updateRole']);
-// });
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/logout', [AuthController::class, 'logout']);    
+    Route::put('/update-role', [AuthController::class, 'updateRole']);
+});
 
 // //ubah password
 // Route::put('/change-password', [AuthController::class, 'changePassword'])->middleware('auth:sanctum');

@@ -8,7 +8,7 @@ use GuzzleHttp\Client;
 class CRUDUserController extends Controller
 {
 
-    const API_URL = "https://kamal.ricakagus.id/api/users";
+
 
     public function index()
     {
@@ -16,20 +16,20 @@ class CRUDUserController extends Controller
             return redirect('/login');
         }
         $client = new Client();
-        $url = static::API_URL;
+        $url = "https://kamal.ricakagus.id/api/users";
 
         //  $response = $client->request('GET', 'https://kamal.ricakagus.id/api/users');
-      $response = $client->request('GET', $url, [
-    'headers' => [
-        'Authorization' => 'Bearer ' . session('token'),
-        'Accept' => 'application/json'
-    ]
-]);
-
-dd(session('token'));
+        $response = $client->request('GET', $url, [
+            'headers' => [
+                'Authorization' => 'Bearer ' . session('token'),
+                'Accept' => 'application/json'
+            ]
+        ]);
 
         $result = json_decode($response->getBody()->getContents(), true);
-        $users = is_array($result) ? $result : []; // fallback jika null atau gagal
+
+        // fix: ambil ['data'] langsung
+        $users = $result['data'] ?? []; // agar di blade bisa langsung foreach ($users as $data)
 
 
         return view('user', compact('users'));
@@ -42,7 +42,7 @@ dd(session('token'));
 
     public function store(Request $request)
     {
-        
+
         $parameter = [
             'userId' => $request->userId,
             'password' => $request->password,
@@ -58,13 +58,13 @@ dd(session('token'));
         } elseif ($request->roleName === 'admin') {
             $parameter['divisi'] = $request->divisiOrStatus;
         }
-        
-        
+
+
         $client = new Client();
         $url = "https://kamal.ricakagus.id/api/users";
-        
+
         try {
-            $response = $client->request('POST',$url, [
+            $response = $client->request('POST', $url, [
                 'headers' => [
                     'Content-Type' => 'application/json',
                     'Authorization' => 'Bearer ' . session('token')
@@ -73,15 +73,15 @@ dd(session('token'));
             ]);
 
             $content = $response->getBody()->getContents(); // Get the response body
-        $contentArray = json_decode($content, true); // Decode the JSON response into an array
+            $contentArray = json_decode($content, true); // Decode the JSON response into an array
 
 
-        if ($contentArray['status'] == true) {
-            return redirect()->to('users')->with('success', 'User berhasil ditambahkan');
-        } else {
-            return redirect()->to('users')->with('error', 'Gagal menambahkan user: ' . $contentArray['message'] ?? 'Unknown error');
-        }
-        
+            if ($contentArray['status'] == true) {
+                return redirect()->to('users')->with('success', 'User berhasil ditambahkan');
+            } else {
+                return redirect()->to('users')->with('error', 'Gagal menambahkan user: ' . $contentArray['message'] ?? 'Unknown error');
+            }
+
         } catch (\Exception $e) {
             return redirect()->to('users')->with('error', 'Gagal menambahkan user: ' . $e->getMessage());
         }
@@ -100,7 +100,7 @@ dd(session('token'));
     public function edit(string $id)
     {
         $client = new Client();
-        $url = static::API_URL . '/' . $id;
+        $url = "https://kamal.ricakagus.id/api/users" . '/' . $id;
 
         $response = $client->request('GET', $url, [
             'headers' => [
@@ -149,7 +149,7 @@ dd(session('token'));
     public function destroy(string $id)
     {
         $client = new Client();
-        $url = static::API_URL . '/' . $id;
+        $url = "https://kamal.ricakagus.id/api/users" . '/' . $id;
 
         $response = $client->delete($url, [
             'headers' => [
