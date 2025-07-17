@@ -12,7 +12,7 @@
     <main class="container my-4">
         <div class="p-4 bg-white shadow rounded">
             <h2 class="mb-4">Form Input Data User</h2>
-            <form id="userForm" action="" method="post" >
+            <form id="userForm" action="" method="post">
                 @csrf
                 <div class="row">
                     <div class="col-md-6">
@@ -26,8 +26,8 @@
                         </div>
                         <div class="mb-3">
                             <label for="roleName" class="form-label">Role</label>
-                            <select class="form-select" id="roleName" name="roleName" required>
-                                <option value="">Pilih Role</option>
+                            <select id="roleName" name="roleName" class="form-select">
+                                <option value="">-- Pilih Role --</option>
                                 <option value="admin">Admin</option>
                                 <option value="dosen">Dosen</option>
                                 <option value="mahasiswa">Mahasiswa</option>
@@ -43,10 +43,13 @@
                             <label for="email" class="form-label">Email</label>
                             <input type="email" class="form-control" id="email" name="email" required>
                         </div>
+
+
                         <div class="mb-3">
-                            <label for="divisiOrStatus" class="form-label">Angkatan / Divisi / Status</label>
-                            <input type="text" class="form-control" id="divisiOrStatus" name="divisiOrStatus">
+                            <label for="dynamicField" id="dynamicLabel" class="form-label">Keterangan</label>
+                            <input type="text" class="form-control" id="dynamicField" name="keterangan">
                         </div>
+
                     </div>
                 </div>
                 <div class="text-end">
@@ -71,11 +74,11 @@
                     </tr>
                 </thead>
                 <tbody>
-                   @php
-                           
-                        @endphp
-                        @foreach ($users as $data)  
-                        <tr>    
+                    @php
+
+                    @endphp
+                    @foreach ($users as $data)
+                        <tr>
                             <td>{{ $data['id'] }}</td>
                             <td>{{ $data['userId'] }}</td>
                             <td>{{ $data['roleName'] }}</td>
@@ -95,7 +98,34 @@
             </table>
         </div>
     </main>
-    
+
 </body>
+<script>
+    const roleSelect = document.getElementById('roleName');
+    const input = document.getElementById('dynamicField');
+    const label = document.getElementById('dynamicLabel');
+
+    roleSelect.addEventListener('change', function () {
+        const role = this.value;
+
+        if (role === 'mahasiswa') {
+            label.innerText = 'Tahun Angkatan';
+            input.placeholder = 'Masukkan Tahun Angkatan Mahasiswa';
+            input.name = 'thnAngkatan';
+        } else if (role === 'dosen') {
+            label.innerText = 'Status Dosen';
+            input.placeholder = 'Masukkan Status Dosen: Tetap/Tidak Tetap';
+            input.name = 'status';
+        } else if (role === 'admin') {
+            label.innerText = 'Divisi';
+            input.placeholder = 'Masukkan Divisi Proyek: A/B/C...';
+            input.name = 'divisi';
+        } else {
+            label.innerText = 'Keterangan';
+            input.name = 'keterangan';
+        }
+    });
+</script>
+
 
 </html>

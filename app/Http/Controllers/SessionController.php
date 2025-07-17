@@ -41,8 +41,16 @@ class SessionController extends Controller
             'roleName' => 'required',
             'name' => 'required',
             'email' => 'required|email',
-            'thnAngkatan' => 'nullable',
+            
         ]);
+
+        if ($request->roleName === 'mahasiswa') {
+            $request->validate(['thnAngkatan' => 'required']);
+        } elseif ($request->roleName === 'dosen') {
+            $request->validate(['status' => 'required']);
+        } elseif ($request->roleName === 'admin') {
+            $request->validate(['divisi' => 'required']);
+        }
 
         $response = Http::post(url('/api/register'), [
             'userId' => $request->userId,

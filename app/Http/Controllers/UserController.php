@@ -16,7 +16,7 @@ class UserController extends Controller
     public function index(Request $request)
     {
 
-        $data = User::orderBy('userId', 'asc')->get();
+        $data = User::orderBy('id', 'asc')->get();
         
         return response()->json([
                 'status' => 'true',
@@ -58,9 +58,9 @@ class UserController extends Controller
             'nama' => 'required',
             'email' => 'required|email',
         ];
-
+        
         if ($request->roleName === 'mahasiswa') {
-            $ruless['thnAngkatan'] = 'nullable|string';
+            $ruless['thnAngkatan'] = 'required|string';
         } elseif ($request->roleName === 'dosen') {
             $ruless['status'] = 'required|string';
         } elseif ($request->roleName === 'admin') {
