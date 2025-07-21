@@ -2,35 +2,41 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
 use Illuminate\Http\Request;
 use GuzzleHttp\Client;
 
 class CRUDUserController extends Controller
 {
-
-
-
     public function index()
     {
-        if (!session('token')) {
-            return redirect('/login');
-        }
-        $client = new Client();
-        $url = "https://kamal.ricakagus.id/api/users";
+        $users = User::all()->map(function ($user) {
+            $userData = [
+                'id' => $user->id,
+                'userId' => $user->userId,
+                'roleName' => $user->roleName,
+                'statusLogin' => $user->statusLogin,
+                'nama' => null,
+                'email' => null,
+                'divisiOrStatus' => null,
+            ];
 
-        //  $response = $client->request('GET', 'https://kamal.ricakagus.id/api/users');
-        $response = $client->request('GET', $url, [
-            'headers' => [
-                'Authorization' => 'Bearer ' . session('token'),
-                'Accept' => 'application/json'
-            ]
-        ]);
+            if ($user->roleName === 'admin' && $user->admin) {
+                $userData['nama'] = $user->admin->nama;
+                $userData['email'] = $user->admin->email;
+                $userData['divisiOrStatus'] = $user->admin->divisi;
+            } elseif ($user->roleName === 'dosen' && $user->dosen) {
+                $userData['nama'] = $user->dosen->nama;
+                $userData['email'] = $user->dosen->email;
+                $userData['divisiOrStatus'] = $user->dosen->status;
+            } elseif ($user->roleName === 'mahasiswa' && $user->mahasiswa) {
+                $userData['nama'] = $user->mahasiswa->nama;
+                $userData['email'] = $user->mahasiswa->email;
+                $userData['divisiOrStatus'] = $user->mahasiswa->thnAngkatan;
+            }
 
-        $result = json_decode($response->getBody()->getContents(), true);
-
-        // fix: ambil ['data'] langsung
-        $users = $result['data'] ?? []; // agar di blade bisa langsung foreach ($users as $data)
-
+            return $userData;
+        });
 
         return view('user', compact('users'));
     }
@@ -42,7 +48,17 @@ class CRUDUserController extends Controller
 
     public function store(Request $request)
     {
+        // Validasi dasar
+        $request->validate([
+            'userId' => 'required',
+            'password' => 'required',
+            'roleName' => 'required|in:admin,dosen,mahasiswa',
+            'nama' => 'required',
+            'email' => 'required|email',
+            'divisiOrStatus' => 'required'
+        ]);
 
+        // Persiapkan data berdasarkan role
         $parameter = [
             'userId' => $request->userId,
             'password' => $request->password,
@@ -51,6 +67,7 @@ class CRUDUserController extends Controller
             'email' => $request->email,
         ];
 
+        // Sesuaikan field sesuai backend controller
         if ($request->roleName === 'mahasiswa') {
             $parameter['thnAngkatan'] = $request->divisiOrStatus;
         } elseif ($request->roleName === 'dosen') {
@@ -59,38 +76,32 @@ class CRUDUserController extends Controller
             $parameter['divisi'] = $request->divisiOrStatus;
         }
 
-
+        // Kirim ke endpoint register
         $client = new Client();
-        $url = "https://kamal.ricakagus.id/api/users";
+        $url = "https://kamal.ricakagus.id/api/users"; // Endpoint ini harus mengarah ke AuthController@register
 
         try {
             $response = $client->request('POST', $url, [
                 'headers' => [
                     'Content-Type' => 'application/json',
-                    'Authorization' => 'Bearer ' . session('token')
+                    'Authorization' => 'Bearer ' . session('token'), // Jika tidak pakai middleware, bisa kosongkan
                 ],
                 'body' => json_encode($parameter)
             ]);
 
-            $content = $response->getBody()->getContents(); // Get the response body
-            $contentArray = json_decode($content, true); // Decode the JSON response into an array
-
+            $contentArray = json_decode($response->getBody()->getContents(), true);
 
             if ($contentArray['status'] == true) {
                 return redirect()->to('users')->with('success', 'User berhasil ditambahkan');
             } else {
-                return redirect()->to('users')->with('error', 'Gagal menambahkan user: ' . $contentArray['message'] ?? 'Unknown error');
+                return redirect()->to('users')->with('error', 'Gagal menambahkan user: ' . ($contentArray['message'] ?? 'Unknown error'));
             }
-
         } catch (\Exception $e) {
             return redirect()->to('users')->with('error', 'Gagal menambahkan user: ' . $e->getMessage());
         }
-        //     $result = json_decode($response->getBody()->getContents(), true);
-        //     return redirect()->to('users')->with('success', $result['message'] ?? 'User berhasil ditambahkan');
-        // } catch (\Exception $e) {
-        //     return redirect()->to('users')->with('error', 'Gagal menambahkan user: ' . $e->getMessage());
-        // }
     }
+
+
 
     public function show(string $id)
     {

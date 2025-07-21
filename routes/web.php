@@ -32,7 +32,7 @@ Route::post('/login', [SessionController::class, 'login'])->name('login.post');
 Route::middleware(['auth'])->group(function () {
     Route::get('/user', [CRUDUserController::class, 'index']);
     Route::get('/users', [CRUDUserController::class, 'index']);
-    Route::post('/users', [AuthController::class, 'register']);
+    Route::post('/users', [CRUDUserController::class, 'store']);
     Route::get('/users/{id}/edit', [CRUDUserController::class, 'edit']);
     Route::put('/users/{id}', [CRUDUserController::class, 'update']);
     Route::delete('/users/{id}', [CRUDUserController::class, 'destroy']);

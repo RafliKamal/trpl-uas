@@ -27,6 +27,11 @@ Route::middleware('auth:sanctum')->post('/logout', [AuthController::class, 'logo
 
 Route::get('/users', [UserController::class, 'index']);
 Route::post('/users', [UserController::class, 'store']);
+Route::middleware('auth:sanctum')->group(function () {
+    Route::put('/users/{id}', [UserController::class, 'update']);
+    Route::delete('/users/{id}', [UserController::class, 'destroy']);
+});
+
 
 // //cek data user
 // Route::middleware(['auth:sanctum'])->group(function () {

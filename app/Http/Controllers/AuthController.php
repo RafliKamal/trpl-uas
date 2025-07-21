@@ -57,7 +57,7 @@ class AuthController extends Controller
                 'nidn' => $request->userId,
                 'nama' => $request->nama,
                 'email' => $request->email,
-                'status' => 'aktif'
+                'status' => $request->status,
             ]);
         }
         if ($request->roleName === 'admin') {

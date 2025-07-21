@@ -25,6 +25,20 @@ class User extends Authenticatable
     ];
 
 
+    public function admin()
+    {
+        return $this->hasOne(Admin::class, 'userId', 'userId');
+    }
+
+    public function dosen()
+    {
+        return $this->hasOne(Dosen::class, 'userId', 'userId');
+    }
+
+    public function mahasiswa()
+    {
+        return $this->hasOne(Mahasiswa::class, 'userId', 'userId');
+    }
 
     /**
      * The attributes that should be hidden for serialization.
@@ -44,5 +58,5 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
     ];
-    
+
 }

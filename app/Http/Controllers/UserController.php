@@ -9,6 +9,8 @@ use Illuminate\Support\Facades\Hash;
 use App\Models\User;
 use App\Models\Mahasiswa;
 use App\Models\Dosen;
+use Illuminate\Validation\Rule;
+
 use Validator;
 
 class UserController extends Controller
@@ -49,7 +51,7 @@ class UserController extends Controller
 
     public function store(Request $request)
     {
-        
+        \Log::info('Update User Request', $request->all());
 
         $ruless = [
             'userId' => 'required|unique:users,userId',
@@ -58,7 +60,7 @@ class UserController extends Controller
             'nama' => 'required',
             'email' => 'required|email',
         ];
-        
+
         if ($request->roleName === 'mahasiswa') {
             $ruless['thnAngkatan'] = 'required|string';
         } elseif ($request->roleName === 'dosen') {
@@ -154,6 +156,101 @@ class UserController extends Controller
     {
         return response()->json(Dosen::all());
     }
+    
+    
+    
+    public function update(Request $request, $id)
+{
+    $user = User::findOrFail($id);
+
+    $rules = [
+        'userId' => [
+            'required',
+            Rule::unique('users', 'userId')->ignore($user->id),
+        ],
+        'roleName' => 'required|in:admin,dosen,mahasiswa',
+        'nama' => 'required',
+        'email' => 'required|email',
+    ];
+
+    // Tambahkan validasi keterangan sesuai role
+    if ($request->roleName === 'mahasiswa') {
+        $rules['thnAngkatan'] = 'required|string';
+    } elseif ($request->roleName === 'dosen') {
+        $rules['status'] = 'required|string';
+    } elseif ($request->roleName === 'admin') {
+        $rules['divisi'] = 'required|string';
+    }
+
+    $validator = Validator::make($request->all(), $rules);
+
+    if ($validator->fails()) {
+        return response()->json([
+            'status' => false,
+            'message' => 'Validasi gagal',
+            'errors' => $validator->errors()
+        ], 422);
+    }
+
+    // Update user
+    $user->update([
+        'roleName' => $request->roleName,
+        'statusLogin' => 'offline',
+        // hanya update password jika tidak kosong
+        'password' => $request->password ? Hash::make($request->password) : $user->password,
+    ]);
+
+    // Update ke tabel role
+    if ($request->roleName === 'admin') {
+        Admin::where('userId', $user->userId)->update([
+            'nama' => $request->nama,
+            'email' => $request->email,
+            'divisi' => $request->divisi,
+        ]);
+    } elseif ($request->roleName === 'dosen') {
+        Dosen::where('userId', $user->userId)->update([
+            'nama' => $request->nama,
+            'email' => $request->email,
+            'status' => $request->status,
+        ]);
+    } elseif ($request->roleName === 'mahasiswa') {
+        Mahasiswa::where('userId', $user->userId)->update([
+            'nama' => $request->nama,
+            'email' => $request->email,
+            'thnAngkatan' => $request->thnAngkatan,
+        ]);
+    }
+
+    return response()->json([
+        'status' => true,
+        'message' => 'User berhasil diperbarui'
+    ]);
+}
+
+
+// Delete user by ID
+public function destroy($id)
+{
+    $user = User::find($id);
+
+    if (!$user) {
+        return response()->json(['status' => false, 'message' => 'User tidak ditemukan'], 404);
+    }
+
+    // Hapus juga data pada tabel role terkait
+    if ($user->roleName === 'mahasiswa') {
+        Mahasiswa::where('userId', $user->userId)->delete();
+    } elseif ($user->roleName === 'dosen') {
+        Dosen::where('userId', $user->userId)->delete();
+    } elseif ($user->roleName === 'admin') {
+        Admin::where('userId', $user->userId)->delete();
+    }
+
+    $user->delete();
+
+    return response()->json(['status' => true, 'message' => 'User berhasil dihapus'], 200);
+}
+
 
     public function updateProfile(Request $request)
     {
