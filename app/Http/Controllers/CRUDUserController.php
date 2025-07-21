@@ -97,27 +97,12 @@ class CRUDUserController extends Controller
         // Optional jika diperlukan
     }
 
-    public function edit(string $id)
+    public function edit($id)
     {
-        $client = new Client();
-        $url = "https://kamal.ricakagus.id/api/users" . '/' . $id;
-
-        $response = $client->request('GET', $url, [
-            'headers' => [
-                'Authorization' => 'Bearer ' . session('token'),
-                'Accept' => 'application/json'
-            ]
-        ]);
-
-        $result = json_decode($response->getBody()->getContents(), true);
-
-        if (isset($result['data'])) {
-            $user = $result['data'];
-            return view('user', compact('user'));
-        }
-
-        return redirect()->to('users')->with('error', 'User tidak ditemukan');
+        $user = User::findOrFail($id);
+        return view('user', compact('user'));
     }
+
 
     public function update(Request $request, string $id)
     {

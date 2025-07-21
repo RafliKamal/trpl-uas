@@ -35,45 +35,52 @@
                             <label for="userId" class="form-label">User ID</label>
                             <input type="text" class="form-control" id="userId" name="userId" required
                                 value="{{ $user['userId'] ?? '' }}" {{ isset($user) ? 'readonly' : '' }}>
-
                         </div>
+
                         <div class="mb-3">
                             <label for="password" class="form-label">Password</label>
-                            <input type="password" class="form-control" id="password" name="password" required>
+                            <input type="password" class="form-control" id="password" name="password" {{ isset($user) ? '' : 'required' }}>
                         </div>
+
                         <div class="mb-3">
                             <label for="roleName" class="form-label">Role</label>
-                            <select id="roleName" name="roleName" class="form-select">
+                            <select id="roleName" name="roleName" class="form-select" required>
                                 <option value="">-- Pilih Role --</option>
-                                <option value="admin">Admin</option>
-                                <option value="dosen">Dosen</option>
-                                <option value="mahasiswa">Mahasiswa</option>
+                                <option value="admin" {{ (isset($user) && $user['roleName'] === 'admin') ? 'selected' : '' }}>Admin</option>
+                                <option value="dosen" {{ (isset($user) && $user['roleName'] === 'dosen') ? 'selected' : '' }}>Dosen</option>
+                                <option value="mahasiswa" {{ (isset($user) && $user['roleName'] === 'mahasiswa') ? 'selected' : '' }}>Mahasiswa</option>
                             </select>
                         </div>
                     </div>
+
                     <div class="col-md-6">
                         <div class="mb-3">
                             <label for="nama" class="form-label">Nama</label>
-                            <input type="text" class="form-control" id="nama" name="nama" required>
+                            <input type="text" class="form-control" id="nama" name="nama" required
+                                value="{{ $user['nama'] ?? '' }}">
                         </div>
+
                         <div class="mb-3">
                             <label for="email" class="form-label">Email</label>
-                            <input type="email" class="form-control" id="email" name="email" required>
+                            <input type="email" class="form-control" id="email" name="email" required
+                                value="{{ $user['email'] ?? '' }}">
                         </div>
-
 
                         <div class="mb-3">
-                            <label for="dynamicField" id="dynamicLabel" class="form-label">Keterangan</label>
-                            <input type="text" class="form-control" id="dynamicField" name="divisiOrStatus">
-
+                            <label for="dynamicField" id="dynamicLabel" class="form-label">
+                                {{ (isset($user) && $user['roleName'] === 'admin') ? 'Divisi' : 'Status / Angkatan' }}
+                            </label>
+                            <input type="text" class="form-control" id="dynamicField" name="divisiOrStatus"
+                                value="{{ $user['divisiOrStatus'] ?? '' }}">
                         </div>
-
                     </div>
                 </div>
+
                 <div class="text-end">
-                    <button type="submit" class="btn btn-primary">Simpan</button>
+                    <button type="submit" class="btn btn-primary">{{ isset($user) ? 'Update' : 'Simpan' }}</button>
                 </div>
             </form>
+
             <form method="POST" action="/logout" style="display: inline;">
                 @csrf
                 <button type="submit" class="btn btn-danger">Logout</button>
