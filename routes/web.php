@@ -19,7 +19,7 @@ use App\Http\Controllers\SessionController;
 */
 
 Route::get('/', function () {
-    return view('welcome');
+    return view('login');
 });
 
 

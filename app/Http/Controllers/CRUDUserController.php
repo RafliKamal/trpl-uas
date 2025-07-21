@@ -122,28 +122,40 @@ class CRUDUserController extends Controller
     public function update(Request $request, string $id)
     {
         $client = new Client();
-        $url = "https://kamal.ricakagus.id/api/me";
+        $url = "https://kamal.ricakagus.id/api/users/$id";
 
         $parameter = [
+            'userId' => $request->userId,
             'nama' => $request->nama,
             'email' => $request->email,
+            'roleName' => $request->roleName,
         ];
 
-        $response = $client->put($url, [
-            'headers' => [
-                'Content-Type' => 'application/json',
-                'Authorization' => 'Bearer ' . session('token')
-            ],
-            'body' => json_encode($parameter)
-        ]);
-
-        $result = json_decode($response->getBody()->getContents(), true);
-
-        if (isset($result['message'])) {
-            return redirect()->to('users')->with('success', $result['message']);
+        if ($request->roleName === 'mahasiswa') {
+            $parameter['thnAngkatan'] = $request->divisiOrStatus;
+        } elseif ($request->roleName === 'dosen') {
+            $parameter['status'] = $request->divisiOrStatus;
+        } elseif ($request->roleName === 'admin') {
+            $parameter['divisi'] = $request->divisiOrStatus;
         }
 
-        return redirect()->to('users')->with('error', 'Gagal memperbarui data');
+
+        try {
+            $response = $client->put($url, [
+                'headers' => [
+                    'Content-Type' => 'application/json',
+                    'Authorization' => 'Bearer ' . session('token')
+                ],
+                'body' => json_encode($parameter)
+            ]);
+
+            $result = json_decode($response->getBody()->getContents(), true);
+
+            return redirect()->to('users')->with('success', $result['message'] ?? 'User berhasil diperbarui');
+        } catch (\Exception $e) {
+            return redirect()->to('users')->with('error', 'Gagal memperbarui user: ' . $e->getMessage());
+        }
+
     }
 
     public function destroy(string $id)

@@ -12,13 +12,30 @@
     <main class="container my-4">
         <div class="p-4 bg-white shadow rounded">
             <h2 class="mb-4">Form Input Data User</h2>
-            <form id="userForm" action="" method="post">
+            @if (session('success'))
+                <div class="alert alert-success">
+                    {{ session('success') }}
+                </div>
+            @endif
+
+            @if (session('error'))
+                <div class="alert alert-danger">
+                    {{ session('error') }}
+                </div>
+            @endif
+            <form id="userForm" action="{{ isset($user) ? '/users/' . $user['id'] : '/users' }}" method="POST">
                 @csrf
+                @if(isset($user))
+                    @method('PUT')
+                @endif
+
                 <div class="row">
                     <div class="col-md-6">
                         <div class="mb-3">
                             <label for="userId" class="form-label">User ID</label>
-                            <input type="text" class="form-control" id="userId" name="userId" required>
+                            <input type="text" class="form-control" id="userId" name="userId" required
+                                value="{{ $user['userId'] ?? '' }}" {{ isset($user) ? 'readonly' : '' }}>
+
                         </div>
                         <div class="mb-3">
                             <label for="password" class="form-label">Password</label>
@@ -47,7 +64,8 @@
 
                         <div class="mb-3">
                             <label for="dynamicField" id="dynamicLabel" class="form-label">Keterangan</label>
-                            <input type="text" class="form-control" id="dynamicField" name="keterangan">
+                            <input type="text" class="form-control" id="dynamicField" name="divisiOrStatus">
+
                         </div>
 
                     </div>
@@ -111,20 +129,18 @@
         if (role === 'mahasiswa') {
             label.innerText = 'Tahun Angkatan';
             input.placeholder = 'Masukkan Tahun Angkatan Mahasiswa';
-            input.name = 'thnAngkatan';
         } else if (role === 'dosen') {
             label.innerText = 'Status Dosen';
             input.placeholder = 'Masukkan Status Dosen: Tetap/Tidak Tetap';
-            input.name = 'status';
         } else if (role === 'admin') {
             label.innerText = 'Divisi';
             input.placeholder = 'Masukkan Divisi Proyek: A/B/C...';
-            input.name = 'divisi';
         } else {
             label.innerText = 'Keterangan';
-            input.name = 'keterangan';
+            input.placeholder = '';
         }
     });
+
 </script>
 
 
