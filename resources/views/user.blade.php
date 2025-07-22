@@ -12,6 +12,13 @@
 
 <body class="bg-light">
     <main class="container my-4">
+        <div class="d-flex justify-content-end mb-3">
+    <form method="POST" action="/logout">
+        @csrf
+        <button type="submit" class="btn btn-outline-danger">Logout</button>
+    </form>
+</div>
+
         <div class="p-4 bg-white shadow rounded">
             @if (session('roleName') === 'admin')
     <h2 class="mb-4">Form Input Data User</h2>
@@ -86,10 +93,7 @@
             </form>
 
 @endif
-            <form method="POST" action="/logout" style="display: inline;">
-                @csrf
-                <button type="submit" class="btn btn-danger">Logout</button>
-            </form>
+           
         </div>
         <div class="p-4 bg-white shadow rounded mt-4">
             <h4>Daftar User</h4>
@@ -120,8 +124,8 @@
                             <td class="user-role">{{ $data['roleName'] }}</td>
                             <td class="user-status">{{ $data['statusLogin'] }}</td>
                   
-                               <td class="text-center">
-    {{-- Tampilkan tombol Edit jika Admin atau user yang sedang login adalah pemilik data --}}
+                             <td class="text-center">
+    {{-- Admin bisa edit semua, user hanya bisa edit dirinya sendiri --}}
     @if (session('roleName') === 'admin' || session('userId') === $data['userId'])
         <button class="btn btn-warning btn-sm edit-user-btn" data-id="{{ $data['id'] }}"
             data-userid="{{ $data['userId'] }}" data-nama="{{ $data['nama'] }}"
@@ -134,7 +138,7 @@
         </button>
     @endif
 
-    {{-- Tampilkan tombol Delete hanya jika Admin --}}
+    {{-- Admin bisa hapus semua --}}
     @if (session('roleName') === 'admin')
         <button type="button" class="btn btn-sm btn-danger delete-user-btn"
             data-id="{{ $data['id'] }}" data-nama="{{ $data['nama'] }}" data-bs-toggle="modal"
@@ -142,9 +146,8 @@
             Delete
         </button>
     @endif
+</td>
 
-
-                            </td>
                         </tr>
                     @endforeach
                 </tbody>
