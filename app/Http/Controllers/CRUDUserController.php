@@ -8,39 +8,49 @@ use GuzzleHttp\Client;
 
 class CRUDUserController extends Controller
 {
-    public function index()
+    private function apiClient()
     {
-        $users = User::all()->map(function ($user) {
-            $userData = [
-                'id' => $user->id,
-                'userId' => $user->userId,
-                'roleName' => $user->roleName,
-                'statusLogin' => $user->statusLogin,
-                'nama' => null,
-                'email' => null,
-                'divisiOrStatus' => null,
-            ];
-
-            if ($user->roleName === 'admin' && $user->admin) {
-                $userData['nama'] = $user->admin->nama;
-                $userData['email'] = $user->admin->email;
-                $userData['divisiOrStatus'] = $user->admin->divisi;
-            } elseif ($user->roleName === 'dosen' && $user->dosen) {
-                $userData['nama'] = $user->dosen->nama;
-                $userData['email'] = $user->dosen->email;
-                $userData['divisiOrStatus'] = $user->dosen->status;
-            } elseif ($user->roleName === 'mahasiswa' && $user->mahasiswa) {
-                $userData['nama'] = $user->mahasiswa->nama;
-                $userData['email'] = $user->mahasiswa->email;
-                $userData['divisiOrStatus'] = $user->mahasiswa->thnAngkatan;
-                $userData['statusMahasiswa'] = $user->mahasiswa->status; // ← Tambahan
-            }
-
-            return $userData;
-        });
-
-        return view('user', compact('users'));
+        return new Client([
+            'headers' => [
+                'Authorization' => 'Bearer ' . session('token'),
+                'Content-Type'  => 'application/json',
+                'Accept'        => 'application/json'
+            ]
+        ]);
     }
+
+   public function index()
+{
+    $client = $this->apiClient();
+    $url = "https://kamal.ricakagus.id/api/users";
+
+    try {
+        $response = $client->get($url);
+        $result = json_decode($response->getBody()->getContents(), true);
+
+        if ($result['status']) {
+            $users = collect($result['data'])->map(function ($user) {
+                return [
+                    'id' => $user['id'],
+                    'userId' => $user['userId'],
+                    'roleName' => $user['roleName'],
+                    'statusLogin' => $user['statusLogin'],
+                    'nama' => $user['admin']['nama'] ?? $user['dosen']['nama'] ?? $user['mahasiswa']['nama'] ?? null,
+                    'email' => $user['admin']['email'] ?? $user['dosen']['email'] ?? $user['mahasiswa']['email'] ?? null,
+                    'divisiOrStatus' => $user['admin']['divisi'] ?? $user['dosen']['status'] ?? $user['mahasiswa']['thnAngkatan'] ?? null,
+                    'statusMahasiswa' => $user['mahasiswa']['status'] ?? null,
+                ];
+            });
+        } else {
+            $users = collect();
+        }
+    } catch (\Exception $e) {
+        return back()->with('error', 'Gagal mengambil data user: ' . $e->getMessage());
+    }
+
+    return view('user', compact('users'));
+}
+
 
     public function create()
     {
@@ -49,7 +59,6 @@ class CRUDUserController extends Controller
 
     public function store(Request $request)
     {
-        // Validasi dasar
         $request->validate([
             'userId' => 'required',
             'password' => 'required',
@@ -59,7 +68,6 @@ class CRUDUserController extends Controller
             'divisiOrStatus' => 'required'
         ]);
 
-        // Persiapkan data berdasarkan role
         $parameter = [
             'userId' => $request->userId,
             'password' => $request->password,
@@ -68,7 +76,6 @@ class CRUDUserController extends Controller
             'email' => $request->email,
         ];
 
-        // Sesuaikan field sesuai backend controller
         if ($request->roleName === 'mahasiswa') {
             $parameter['thnAngkatan'] = $request->divisiOrStatus;
         } elseif ($request->roleName === 'dosen') {
@@ -77,16 +84,11 @@ class CRUDUserController extends Controller
             $parameter['divisi'] = $request->divisiOrStatus;
         }
 
-        // Kirim ke endpoint register
-        $client = new Client();
-        $url = "https://kamal.ricakagus.id/api/users"; // Endpoint ini harus mengarah ke AuthController@register
+        $client = $this->apiClient();
+        $url = "https://kamal.ricakagus.id/api/users";
 
         try {
-            $response = $client->request('POST', $url, [
-                'headers' => [
-                    'Content-Type' => 'application/json',
-                    'Authorization' => 'Bearer ' . session('token'), // Jika tidak pakai middleware, bisa kosongkan
-                ],
+            $response = $client->post($url, [
                 'body' => json_encode($parameter)
             ]);
 
@@ -102,8 +104,6 @@ class CRUDUserController extends Controller
         }
     }
 
-
-
     public function show(string $id)
     {
         // Optional jika diperlukan
@@ -115,10 +115,9 @@ class CRUDUserController extends Controller
         return view('user', compact('user'));
     }
 
-
     public function update(Request $request, string $id)
     {
-        $client = new Client();
+        $client = $this->apiClient();
         $url = "https://kamal.ricakagus.id/api/users/$id";
 
         $parameter = [
@@ -137,13 +136,8 @@ class CRUDUserController extends Controller
             $parameter['divisi'] = $request->divisiOrStatus;
         }
 
-
         try {
             $response = $client->put($url, [
-                'headers' => [
-                    'Content-Type' => 'application/json',
-                    'Authorization' => 'Bearer ' . session('token')
-                ],
                 'body' => json_encode($parameter)
             ]);
 
@@ -153,26 +147,20 @@ class CRUDUserController extends Controller
         } catch (\Exception $e) {
             return redirect()->to('users')->with('error', 'Gagal memperbarui user: ' . $e->getMessage());
         }
-
     }
 
     public function destroy(string $id)
     {
-        $client = new Client();
-        $url = "https://kamal.ricakagus.id/api/users" . '/' . $id;
+        $client = $this->apiClient();
+        $url = "https://kamal.ricakagus.id/api/users/$id";
 
-        $response = $client->delete($url, [
-            'headers' => [
-                'Authorization' => 'Bearer ' . session('token')
-            ]
-        ]);
+        try {
+            $response = $client->delete($url);
+            $result = json_decode($response->getBody()->getContents(), true);
 
-        $result = json_decode($response->getBody()->getContents(), true);
-
-        if (isset($result['message'])) {
-            return redirect()->to('users')->with('success', $result['message']);
+            return redirect()->to('users')->with('success', $result['message'] ?? 'User berhasil dihapus');
+        } catch (\Exception $e) {
+            return redirect()->to('users')->with('error', 'Gagal menghapus user: ' . $e->getMessage());
         }
-
-        return redirect()->to('users')->with('error', 'Gagal menghapus data');
     }
 }

@@ -15,7 +15,6 @@ class AuthController extends Controller
 {
     public function register(Request $request)
     {
-       
         $rules = [
             'userId' => 'required|unique:users,userId',
             'password' => 'required',
@@ -30,15 +29,13 @@ class AuthController extends Controller
                 'errors' => $validator->errors()
             ], 401);
         }
-       
+
         User::create([
             'userId' => $request->userId,
             'password' => Hash::make($request->password),
             'roleName' => $request->roleName,
             'statusLogin' => 'offline'
         ]);
-        
-   
 
         // Tambahkan ke tabel role terkait
         if ($request->roleName === 'mahasiswa') {
@@ -48,7 +45,7 @@ class AuthController extends Controller
                 'nama' => $request->nama,
                 'email' => $request->email,
                 'thnAngkatan' => $request->thnAngkatan,
-                'status' => 'aktif'
+                'status' => $request->status ?? 'aktif'
             ]);
         }
         if ($request->roleName === 'dosen') {
@@ -68,7 +65,6 @@ class AuthController extends Controller
                 'divisi' => $request->divisi,
             ]);
         }
-        
 
         return response()->json([
             'status' => true,
@@ -132,8 +128,6 @@ class AuthController extends Controller
         return response()->json(['message' => 'Password user berhasil di-reset']);
     }
 
-
-
     public function updateRole(Request $request)
     {
         $request->validate([
@@ -149,11 +143,10 @@ class AuthController extends Controller
 
     public function logout(Request $request)
     {
-        // Hapus token yang digunakan saat ini
         $user = $request->user();
 
         if ($user) {
-            $user->currentAccessToken()->delete(); // hapus token saat ini
+            $user->currentAccessToken()->delete();
             $user->update(['statusLogin' => 'offline']);
         }
 

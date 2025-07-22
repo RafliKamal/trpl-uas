@@ -2,18 +2,23 @@
 
 namespace App\Http\Middleware;
 
-use Closure;
+use Illuminate\Auth\Middleware\Authenticate as Middleware;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 
-class Authenticate
+class Authenticate extends Middleware
 {
-    public function handle(Request $request, Closure $next)
+    /**
+     * Handle unauthenticated requests.
+     */
+    protected function unauthenticated($request, array $guards)
     {
-        // Cek apakah ada token di session
-        if (!session()->has('token')) {
-            return redirect('/login');
+        if ($request->expectsJson()) {
+            // Untuk request API (expects JSON), kirimkan response JSON 401
+            abort(response()->json(['message' => 'Unauthenticated.'], 401));
         }
 
-        return $next($request);
+        // Untuk akses web biasa, tetap redirect ke login
+        redirect()->guest(route('login'));
     }
 }

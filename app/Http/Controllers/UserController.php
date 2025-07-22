@@ -15,39 +15,27 @@ use Validator;
 
 class UserController extends Controller
 {
-    public function index(Request $request)
+    public function index()
     {
+        $user = auth()->user();
 
-        $data = User::orderBy('id', 'asc')->get();
-        
+        if ($user->roleName === 'admin') {
+            $data = User::all();
+        } elseif ($user->roleName === 'dosen') {
+            $data = User::whereIn('roleName', ['dosen', 'mahasiswa'])->get();
+        } elseif ($user->roleName === 'mahasiswa') {
+            $data = User::where('id', $user->id)->get();
+        } else {
+            return response()->json(['message' => 'Akses ditolak'], 403);
+        }
+
         return response()->json([
-                'status' => 'true',
-                'message' => 'Data Ditemukan',
-                'data' => $data
-            ], 200);
-
-
-        // Admin => semua user
-        // if ($user->roleName === 'admin') {
-            // return response()->json([
-            //     'status' => 'true',
-            //     'message' => 'Data Ditemukan',
-            //     'data' => $data]);
-
-        // }
-
-        // // Dosen => semua dosen & mahasiswa
-        // if ($user->roleName === 'dosen') {
-        //     return response()->json(User::whereIn('roleName', ['dosen', 'mahasiswa'])->get());
-        // }
-
-        // // Mahasiswa => hanya dirinya sendiri
-        // if ($user->roleName === 'mahasiswa') {
-        //     return response()->json($user);
-        // }
-
-        // return response()->json(['message' => 'Tidak dikenali'], 403);
+            'status' => true,
+            'message' => 'Data ditemukan',
+            'data' => $data
+        ], 200);
     }
+
 
     public function store(Request $request)
     {
@@ -124,7 +112,7 @@ class UserController extends Controller
                 'divisi' => $request->divisi,
             ]);
         }
-        
+
         // $client = new Client();
         // $url = "http://localhost:8001/api/users";
         // $response = $client->request('POST', $url, [
@@ -140,8 +128,8 @@ class UserController extends Controller
         // ]);
 
         return response()->json([
-            'status' =>true,
-            'message'=>'User berhasil ditambahkan'
+            'status' => true,
+            'message' => 'User berhasil ditambahkan'
         ], 200);
 
         // return response()->json(['message' => 'User berhasil ditambahkan'], 200);
@@ -156,102 +144,102 @@ class UserController extends Controller
     {
         return response()->json(Dosen::all());
     }
-    
-    
-    
+
+
+
     public function update(Request $request, $id)
-{
-    $user = User::findOrFail($id);
+    {
+        $user = User::findOrFail($id);
 
-    $rules = [
-        'userId' => [
-            'required',
-            Rule::unique('users', 'userId')->ignore($user->id),
-        ],
-        'roleName' => 'required|in:admin,dosen,mahasiswa',
-        'nama' => 'required',
-        'email' => 'required|email',
-    ];
+        $rules = [
+            'userId' => [
+                'required',
+                Rule::unique('users', 'userId')->ignore($user->id),
+            ],
+            'roleName' => 'required|in:admin,dosen,mahasiswa',
+            'nama' => 'required',
+            'email' => 'required|email',
+        ];
 
-    // Tambahkan validasi keterangan sesuai role
-    if ($request->roleName === 'mahasiswa') {
-        $rules['thnAngkatan'] = 'required|string';
-        $rules['status'] = 'required|string';
-    } elseif ($request->roleName === 'dosen') {
-        $rules['status'] = 'required|string';
-    } elseif ($request->roleName === 'admin') {
-        $rules['divisi'] = 'required|string';
-    }
+        // Tambahkan validasi keterangan sesuai role
+        if ($request->roleName === 'mahasiswa') {
+            $rules['thnAngkatan'] = 'required|string';
+            $rules['status'] = 'required|string';
+        } elseif ($request->roleName === 'dosen') {
+            $rules['status'] = 'required|string';
+        } elseif ($request->roleName === 'admin') {
+            $rules['divisi'] = 'required|string';
+        }
 
-    $validator = Validator::make($request->all(), $rules);
+        $validator = Validator::make($request->all(), $rules);
 
-    if ($validator->fails()) {
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Validasi gagal',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        // Update user
+        $user->update([
+            'roleName' => $request->roleName,
+            'statusLogin' => 'offline',
+            // hanya update password jika tidak kosong
+            'password' => $request->password ? Hash::make($request->password) : $user->password,
+        ]);
+
+        // Update ke tabel role
+        if ($request->roleName === 'admin') {
+            Admin::where('userId', $user->userId)->update([
+                'nama' => $request->nama,
+                'email' => $request->email,
+                'divisi' => $request->divisi,
+            ]);
+        } elseif ($request->roleName === 'dosen') {
+            Dosen::where('userId', $user->userId)->update([
+                'nama' => $request->nama,
+                'email' => $request->email,
+                'status' => $request->status,
+            ]);
+        } elseif ($request->roleName === 'mahasiswa') {
+            Mahasiswa::where('userId', $user->userId)->update([
+                'nama' => $request->nama,
+                'email' => $request->email,
+                'thnAngkatan' => $request->thnAngkatan,
+                'status' => $request->status,
+            ]);
+        }
+
         return response()->json([
-            'status' => false,
-            'message' => 'Validasi gagal',
-            'errors' => $validator->errors()
-        ], 422);
-    }
-
-    // Update user
-    $user->update([
-        'roleName' => $request->roleName,
-        'statusLogin' => 'offline',
-        // hanya update password jika tidak kosong
-        'password' => $request->password ? Hash::make($request->password) : $user->password,
-    ]);
-
-    // Update ke tabel role
-    if ($request->roleName === 'admin') {
-        Admin::where('userId', $user->userId)->update([
-            'nama' => $request->nama,
-            'email' => $request->email,
-            'divisi' => $request->divisi,
-        ]);
-    } elseif ($request->roleName === 'dosen') {
-        Dosen::where('userId', $user->userId)->update([
-            'nama' => $request->nama,
-            'email' => $request->email,
-            'status' => $request->status,
-        ]);
-    } elseif ($request->roleName === 'mahasiswa') {
-        Mahasiswa::where('userId', $user->userId)->update([
-            'nama' => $request->nama,
-            'email' => $request->email,
-            'thnAngkatan' => $request->thnAngkatan,
-            'status' => $request->status,
+            'status' => true,
+            'message' => 'User berhasil diperbarui'
         ]);
     }
 
-    return response()->json([
-        'status' => true,
-        'message' => 'User berhasil diperbarui'
-    ]);
-}
 
+    // Delete user by ID
+    public function destroy($id)
+    {
+        $user = User::find($id);
 
-// Delete user by ID
-public function destroy($id)
-{
-    $user = User::find($id);
+        if (!$user) {
+            return response()->json(['status' => false, 'message' => 'User tidak ditemukan'], 404);
+        }
 
-    if (!$user) {
-        return response()->json(['status' => false, 'message' => 'User tidak ditemukan'], 404);
+        // Hapus juga data pada tabel role terkait
+        if ($user->roleName === 'mahasiswa') {
+            Mahasiswa::where('userId', $user->userId)->delete();
+        } elseif ($user->roleName === 'dosen') {
+            Dosen::where('userId', $user->userId)->delete();
+        } elseif ($user->roleName === 'admin') {
+            Admin::where('userId', $user->userId)->delete();
+        }
+
+        $user->delete();
+
+        return response()->json(['status' => true, 'message' => 'User berhasil dihapus'], 200);
     }
-
-    // Hapus juga data pada tabel role terkait
-    if ($user->roleName === 'mahasiswa') {
-        Mahasiswa::where('userId', $user->userId)->delete();
-    } elseif ($user->roleName === 'dosen') {
-        Dosen::where('userId', $user->userId)->delete();
-    } elseif ($user->roleName === 'admin') {
-        Admin::where('userId', $user->userId)->delete();
-    }
-
-    $user->delete();
-
-    return response()->json(['status' => true, 'message' => 'User berhasil dihapus'], 200);
-}
 
 
     public function updateProfile(Request $request)
