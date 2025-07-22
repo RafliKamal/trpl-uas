@@ -15,26 +15,39 @@ use Validator;
 
 class UserController extends Controller
 {
-    public function index()
-    {
-        $user = auth()->user();
+  public function index()
+{
+    $user = auth()->user();
 
-        if ($user->roleName === 'admin') {
-            $data = User::all();
-        } elseif ($user->roleName === 'dosen') {
-            $data = User::whereIn('roleName', ['dosen', 'mahasiswa'])->get();
-        } elseif ($user->roleName === 'mahasiswa') {
-            $data = User::where('id', $user->id)->get();
-        } else {
-            return response()->json(['message' => 'Akses ditolak'], 403);
-        }
+    if ($user->roleName === 'admin') {
+        // Admin bisa melihat semua
+        $data = User::with(['admin', 'dosen', 'mahasiswa'])->get();
 
-        return response()->json([
-            'status' => true,
-            'message' => 'Data ditemukan',
-            'data' => $data
-        ], 200);
+    } elseif ($user->roleName === 'dosen') {
+        // Dosen bisa lihat sesama dosen dan mahasiswa
+        $data = User::with(['admin', 'dosen', 'mahasiswa'])
+            ->whereIn('roleName', ['dosen', 'mahasiswa'])
+            ->get();
+
+    } elseif ($user->roleName === 'mahasiswa') {
+        // Mahasiswa bisa lihat dirinya sendiri + semua dosen
+        $data = User::with(['admin', 'dosen', 'mahasiswa'])
+            ->where(function ($query) use ($user) {
+                $query->where('id', $user->id) // hanya dirinya sendiri
+                      ->orWhere('roleName', 'dosen'); // dan semua dosen
+            })->get();
+
+    } else {
+        return response()->json(['message' => 'Akses ditolak'], 403);
     }
+
+    return response()->json([
+        'status' => true,
+        'message' => 'Data ditemukan',
+        'data' => $data
+    ], 200);
+}
+
 
 
     public function store(Request $request)
@@ -101,7 +114,7 @@ class UserController extends Controller
                 'nidn' => $request->userId,
                 'nama' => $request->nama,
                 'email' => $request->email,
-                'status' => 'aktif'
+                'status' => $request->status,
             ]);
         }
         if ($request->roleName === 'admin') {

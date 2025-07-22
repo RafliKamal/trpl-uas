@@ -13,90 +13,110 @@ use Illuminate\Support\Facades\Auth;
 
 class AuthController extends Controller
 {
-    public function register(Request $request)
-    {
-        $rules = [
-            'userId' => 'required|unique:users,userId',
-            'password' => 'required',
-            'roleName' => 'required|in:mahasiswa,dosen,admin'
-        ];
+   public function register(Request $request)
+{
+    $rules = [
+        'userId' => 'required|unique:users,userId',
+        'password' => 'required',
+        'roleName' => 'required|in:mahasiswa,dosen,admin',
+        'nama' => 'required',
+        'email' => 'required|email',
+    ];
 
-        $validator = \Validator::make($request->all(), $rules);
-        if ($validator->fails()) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Proses Validasi gagal',
-                'errors' => $validator->errors()
-            ], 401);
-        }
+    // Validasi tambahan berdasarkan role
+    if ($request->roleName === 'mahasiswa') {
+        $rules['thnAngkatan'] = 'required';
+        $rules['status'] = 'required';
+    } elseif ($request->roleName === 'dosen') {
+        $rules['status'] = 'required|in:Tetap,Tidak Tetap';
+    } elseif ($request->roleName === 'admin') {
+        $rules['divisi'] = 'required';
+    }
 
-        User::create([
+    $validator = \Validator::make($request->all(), $rules);
+
+    if ($validator->fails()) {
+        return response()->json([
+            'status' => false,
+            'message' => 'Proses Validasi gagal',
+            'errors' => $validator->errors()
+        ], 401);
+    }
+
+    // Simpan ke tabel users
+    User::create([
+        'userId' => $request->userId,
+        'password' => Hash::make($request->password),
+        'roleName' => $request->roleName,
+        'statusLogin' => 'pending'
+    ]);
+
+    // Simpan ke tabel sesuai rolenya
+    if ($request->roleName === 'mahasiswa') {
+        Mahasiswa::create([
             'userId' => $request->userId,
-            'password' => Hash::make($request->password),
-            'roleName' => $request->roleName,
-            'statusLogin' => 'offline'
-        ]);
-
-        // Tambahkan ke tabel role terkait
-        if ($request->roleName === 'mahasiswa') {
-            Mahasiswa::create([
-                'userId' => $request->userId,
-                'nim' => $request->userId,
-                'nama' => $request->nama,
-                'email' => $request->email,
-                'thnAngkatan' => $request->thnAngkatan,
-                'status' => $request->status ?? 'aktif'
-            ]);
-        }
-        if ($request->roleName === 'dosen') {
-            Dosen::create([
-                'userId' => $request->userId,
-                'nidn' => $request->userId,
-                'nama' => $request->nama,
-                'email' => $request->email,
-                'status' => $request->status,
-            ]);
-        }
-        if ($request->roleName === 'admin') {
-            Admin::create([
-                'userId' => $request->userId,
-                'nama' => $request->nama,
-                'email' => $request->email,
-                'divisi' => $request->divisi,
-            ]);
-        }
-
-        return response()->json([
-            'status' => true,
-            'message' => 'Registrasi berhasil'
-        ], 201);
-    }
-
-    public function login(Request $request)
-    {
-        $request->validate([
-            'userId' => 'required',
-            'password' => 'required'
-        ]);
-
-        $user = User::where('userId', $request->userId)->first();
-
-        if (!$user || !Hash::check($request->password, $user->password)) {
-            return response()->json(['message' => 'Login gagal'], 401);
-        }
-
-        $user->update(['statusLogin' => 'online']);
-        $token = $user->createToken('auth_token')->plainTextToken;
-
-        return response()->json([
-            'message' => 'Login berhasil',
-            'user' => $user,
-            'userId' => $user->userId,
-            'roleName' => $user->roleName,
-            'access_token' => $token,
-            'token_type' => 'Bearer'
+            'nim' => $request->userId,
+            'nama' => $request->nama,
+            'email' => $request->email,
+            'thnAngkatan' => $request->thnAngkatan,
+            'status' => $request->status
         ]);
     }
+
+    if ($request->roleName === 'dosen') {
+        Dosen::create([
+            'userId' => $request->userId,
+            'nidn' => $request->userId,
+            'nama' => $request->nama,
+            'email' => $request->email,
+            'status' => $request->status
+        ]);
+    }
+
+    if ($request->roleName === 'admin') {
+        Admin::create([
+            'userId' => $request->userId,
+            'nama' => $request->nama,
+            'email' => $request->email,
+            'divisi' => $request->divisi
+        ]);
+    }
+
+    return response()->json([
+        'status' => true,
+        'message' => 'Registrasi berhasil'
+    ], 201);
+}
+
+
+  public function login(Request $request)
+{
+    $request->validate([
+        'userId' => 'required',
+        'password' => 'required'
+    ]);
+
+    $user = User::where('userId', $request->userId)->first();
+
+    if (!$user || !Hash::check($request->password, $user->password)) {
+        return response()->json(['message' => 'Login gagal'], 401);
+    }
+
+    $token = $user->createToken('auth_token')->plainTextToken;
+
+    $user->update([
+        'statusLogin' => 'online',
+        'remember_token' => $token // simpan token ke DB
+    ]);
+
+    return response()->json([
+        'message' => 'Login berhasil',
+        'userId' => $user->userId,
+        'roleName' => $user->roleName,
+        'access_token' => $token,
+        'token_type' => 'Bearer'
+    ]);
+}
 
     public function changePassword(Request $request)
     {
@@ -146,14 +166,16 @@ class AuthController extends Controller
     }
 
     public function logout(Request $request)
-    {
-        $user = $request->user();
+{
+    $user = $request->user();
 
-        if ($user) {
-            $user->currentAccessToken()->delete();
-            $user->update(['statusLogin' => 'offline']);
-        }
-
-        return response()->json(['message' => 'Berhasil logout']);
+    if (!$user) {
+        return response()->json(['message' => 'Token tidak valid atau user belum login'], 401);
     }
+
+    $user->currentAccessToken()->delete();
+    $user->update(['statusLogin' => 'offline']);
+
+    return response()->json(['message' => 'Berhasil logout']);
+}
 }

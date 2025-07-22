@@ -19,39 +19,99 @@ class CRUDUserController extends Controller
         ]);
     }
 
-    public function index()
-    {
-        $loggedInUser = session('user');
+public function index()
+{
+    $loggedInUser = session('user');
 
-        $client = $this->apiClient();
-        $url = "https://kamal.ricakagus.id/api/users";
+    $client = $this->apiClient();
+    $url = "https://kamal.ricakagus.id/api/users";
 
-        try {
-            $response = $client->get($url);
-            $result = json_decode($response->getBody()->getContents(), true);
+    try {
+        $response = $client->get($url);
+        $result = json_decode($response->getBody()->getContents(), true);
 
-            if ($result['status']) {
-                $users = collect($result['data'])->map(function ($user) {
-                    return [
-                        'id' => $user['id'],
-                        'userId' => $user['userId'],
-                        'roleName' => $user['roleName'],
-                        'statusLogin' => $user['statusLogin'],
-                        'nama' => $user['admin']['nama'] ?? $user['dosen']['nama'] ?? $user['mahasiswa']['nama'] ?? null,
-                        'email' => $user['admin']['email'] ?? $user['dosen']['email'] ?? $user['mahasiswa']['email'] ?? null,
-                        'divisiOrStatus' => $user['admin']['divisi'] ?? $user['dosen']['status'] ?? $user['mahasiswa']['thnAngkatan'] ?? null,
-                        'statusMahasiswa' => $user['mahasiswa']['status'] ?? null,
-                    ];
-                });
+        if ($result['status']) {
+            $allUsers = collect($result['data'])->map(function ($user) {
+                return [
+                    'id' => $user['id'],
+                    'userId' => $user['userId'],
+                    'roleName' => $user['roleName'],
+                    'statusLogin' => $user['statusLogin'],
+                    'nama' => $user['admin']['nama'] ?? $user['dosen']['nama'] ?? $user['mahasiswa']['nama'] ?? null,
+                    'email' => $user['admin']['email'] ?? $user['dosen']['email'] ?? $user['mahasiswa']['email'] ?? null,
+                    'divisiOrStatus' => $user['admin']['divisi'] ?? $user['dosen']['status'] ?? $user['mahasiswa']['thnAngkatan'] ?? null,
+                    'statusMahasiswa' => $user['mahasiswa']['status'] ?? null,
+                ];
+            });
+
+            // Filter user yang sudah diverifikasi (bukan pending)
+            $users = $allUsers->reject(function ($user) {
+                return $user['statusLogin'] === 'pending';
+            });
+
+            // Khusus admin, ambil juga user pending
+            if ($loggedInUser && $loggedInUser['roleName'] === 'admin') {
+                $pendingUsers = $allUsers->where('statusLogin', 'pending');
             } else {
-                $users = collect();
+                $pendingUsers = collect();
             }
-        } catch (\Exception $e) {
-            return back()->with('error', 'Gagal mengambil data user: ' . $e->getMessage());
+        } else {
+            $users = collect();
+            $pendingUsers = collect();
+        }
+    } catch (\Exception $e) {
+        return back()->with('error', 'Gagal mengambil data user: ' . $e->getMessage());
+    }
+
+    return view('user', compact('users', 'pendingUsers', 'loggedInUser'));
+}
+
+
+public function verify($id)
+{
+    $client = $this->apiClient();
+    $url = "https://kamal.ricakagus.id/api/users/$id";
+
+    try {
+        // Ambil data user lama dulu
+        $getResponse = $client->get("https://kamal.ricakagus.id/api/users");
+        $allUsers = json_decode($getResponse->getBody()->getContents(), true)['data'];
+        $user = collect($allUsers)->firstWhere('id', $id);
+
+        if (!$user) {
+            return back()->with('error', 'User tidak ditemukan.');
         }
 
-        return view('user', compact('users', 'loggedInUser'));
+        $payload = [
+            'userId' => $user['userId'],
+            'roleName' => $user['roleName'],
+            'statusLogin' => 'offline',
+            'nama' => $user['admin']['nama'] ?? $user['dosen']['nama'] ?? $user['mahasiswa']['nama'] ?? '',
+            'email' => $user['admin']['email'] ?? $user['dosen']['email'] ?? $user['mahasiswa']['email'] ?? '',
+        ];
+
+        if ($user['roleName'] === 'admin') {
+            $payload['divisi'] = $user['admin']['divisi'] ?? '';
+        } elseif ($user['roleName'] === 'dosen') {
+            $payload['status'] = $user['dosen']['status'] ?? '';
+        } elseif ($user['roleName'] === 'mahasiswa') {
+            $payload['thnAngkatan'] = $user['mahasiswa']['thnAngkatan'] ?? '';
+            $payload['status'] = $user['mahasiswa']['status'] ?? '';
+        }
+
+        $response = $client->put($url, [
+            'body' => json_encode($payload)
+        ]);
+
+        $result = json_decode($response->getBody()->getContents(), true);
+
+        return redirect()->to('/users')->with('success', $result['message'] ?? 'User berhasil diverifikasi');
+    } catch (\Exception $e) {
+        return redirect()->to('/users')->with('error', 'Gagal verifikasi user: ' . $e->getMessage());
     }
+}
+
+
 
     public function create()
     {

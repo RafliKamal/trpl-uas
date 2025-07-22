@@ -105,7 +105,7 @@
             </div>
 
             <table class="table table-bordered" id="userTable">
-                <thead class="table-light">
+                <thead class="table-light text-center">
                     <tr>
 
                         <th>User ID</th>
@@ -153,6 +153,63 @@
                 </tbody>
             </table>
         </div>
+
+<div class="p-4 bg-white shadow rounded mt-4">
+    <h4 class="mb-3">Daftar User Menunggu Verifikasi</h4>
+
+    @if ($pendingUsers->isEmpty())
+        <p class="text-muted">Tidak ada user dengan status <strong>pending</strong> saat ini.</p>
+    @else
+    <div class="table-responsive">
+        <table class="table table-bordered" >
+            <thead class="table-warning text-center">
+                <tr>
+                    <th>User ID</th>
+                    <th>Nama</th>
+                    <th>Role</th>
+                    <th>Email</th>
+                    <th>Status</th>
+                    <th>Aksi</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach ($pendingUsers as $user)
+                    <tr>
+                        <td>{{ $user['userId'] }}</td>
+                        <td>{{ $user['nama'] }}</td>
+                        <td>
+                            <span>{{ $user['roleName'] }}</span>
+                        </td>
+                        <td>{{ $user['email'] }}</td>
+                        <td class="text-center">
+                            <span class="badge bg-warning text-dark ">{{ $user['statusLogin'] }}</span>
+                        </td>
+                        <td class="text-center">
+                            @if(session('roleName') === 'admin')
+                            <div class="d-flex justify-content-center gap-1">
+                                <form method="POST" action="/users/{{ $user['id'] }}/verify">
+                                    @csrf
+                                    @method('PUT')
+                                    <button type="submit" class="btn btn-success btn-sm">Verifikasi</button>
+                                </form>
+                                <button type="button" class="btn btn-sm btn-danger delete-user-btn"
+                                    data-id="{{ $user['id'] }}" data-nama="{{ $user['nama'] }}"
+                                    data-bs-toggle="modal" data-bs-target="#deleteUserModal">
+                                    Delete
+                                </button>
+                            </div>
+                            @endif
+                        </td>
+                    </tr>
+                @endforeach
+            </tbody>
+        </table>
+    </div>
+    @endif
+</div>
+
+
+
 
 
 
