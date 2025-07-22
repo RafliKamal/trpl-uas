@@ -14,5 +14,9 @@ class Admin extends Model
         'email',
         'divisi'
     ];
+    public function user()
+{
+    return $this->belongsTo(User::class, 'userId', 'userId');
+}
 
 }

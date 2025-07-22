@@ -10,6 +10,35 @@
 
 </head>
 
+<style>
+    #userTable {
+        table-layout: fixed;
+        width: 100%;
+    }
+
+    #userTable th,
+    #userTable td {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        text-align: center;
+    }
+
+    #userTable th:nth-child(1), #userTable td:nth-child(1) { width: 15%; }  /* User ID */
+    #userTable th:nth-child(2), #userTable td:nth-child(2) { width: 25%; }  /* Nama */
+    #userTable th:nth-child(3), #userTable td:nth-child(3) { width: 15%; }  /* Role */
+    #userTable th:nth-child(4), #userTable td:nth-child(4) { width: 15%; }  /* Status */
+    #userTable th:nth-child(5), #userTable td:nth-child(5) { width: 30%; }  /* Aksi */
+
+    .pagination .page-link {
+        font-size: 1rem;
+        padding: 0.5rem 1rem;
+    }
+
+
+</style>
+
+
 <body class="bg-light">
     <main class="container my-4">
         <div class="d-flex justify-content-end mb-3">
@@ -23,17 +52,7 @@
             @if (session('roleName') === 'admin')
     <h2 class="mb-4">Form Input Data User</h2>
 
-            @if (session('success'))
-                <div class="alert alert-success">
-                    {{ session('success') }}
-                </div>
-            @endif
-
-            @if (session('error'))
-                <div class="alert alert-danger">
-                    {{ session('error') }}
-                </div>
-            @endif
+         
             <form id="userForm" action="{{ isset($user) ? '/users/' . $user['id'] : '/users' }}" method="POST">
                 @csrf
                 @if(isset($user))
@@ -97,12 +116,12 @@
         </div>
         <div class="p-4 bg-white shadow rounded mt-4">
             <h4>Daftar User</h4>
-            <div class="row mb-3 mt-4">
-                <div class="col-md-6">
-                    <input type="text" id="searchInput" class="form-control"
-                        placeholder="🔍 Cari User ID, Nama, Role, atau Status...">
-                </div>
-            </div>
+     <form id="searchForm" class="mb-3">
+    <div class="input-group">
+        <input type="text" id="searchInput" class="form-control" placeholder="🔍 Cari...">
+    </div>
+</form>
+
 
             <table class="table table-bordered" id="userTable">
                 <thead class="table-light text-center">
@@ -152,6 +171,8 @@
                     @endforeach
                 </tbody>
             </table>
+
+
         </div>
 
 <div class="p-4 bg-white shadow rounded mt-4">
@@ -187,11 +208,13 @@
                         <td class="text-center">
                             @if(session('roleName') === 'admin')
                             <div class="d-flex justify-content-center gap-1">
-                                <form method="POST" action="/users/{{ $user['id'] }}/verify">
-                                    @csrf
-                                    @method('PUT')
-                                    <button type="submit" class="btn btn-success btn-sm">Verifikasi</button>
-                                </form>
+                               @if($user['statusLogin'] === 'pending')
+    <form method="POST" action="{{ url('/users/' . $user['id'] . '/verify') }}">
+        @csrf
+        <button type="submit" class="btn btn-sm btn-success">Verifikasi</button>
+    </form>
+@endif
+
                                 <button type="button" class="btn btn-sm btn-danger delete-user-btn"
                                     data-id="{{ $user['id'] }}" data-nama="{{ $user['nama'] }}"
                                     data-bs-toggle="modal" data-bs-target="#deleteUserModal">
@@ -309,37 +332,50 @@
         </div>
     </div>
 
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1100">
+    <div id="toastMessage" class="toast align-items-center text-white bg-success border-0" role="alert"
+        aria-live="assertive" aria-atomic="true">
+        <div class="d-flex">
+            <div class="toast-body" id="toastBody">
+                <!-- Pesan akan diisi oleh JavaScript -->
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"
+                aria-label="Close"></button>
+        </div>
+    </div>
+</div>
 
 </body>
 <script>
-    const roleSelect = document.getElementById('roleName');
-    const input = document.getElementById('dynamicField');
-    const label = document.getElementById('dynamicLabel');
-
-    roleSelect.addEventListener('change', function () {
-        const role = this.value;
-
-        if (role === 'mahasiswa') {
-            label.innerText = 'Tahun Angkatan';
-            input.placeholder = 'Masukkan Tahun Angkatan Mahasiswa';
-        } else if (role === 'dosen') {
-            label.innerText = 'Status Dosen';
-            input.placeholder = 'Masukkan Status Dosen: Tetap/Tidak Tetap';
-        } else if (role === 'admin') {
-            label.innerText = 'Divisi';
-            input.placeholder = 'Masukkan Divisi Proyek: A/B/C...';
-        } else {
-            label.innerText = 'Keterangan';
-            input.placeholder = '';
-        }
-    });
-
 
     document.addEventListener('DOMContentLoaded', function () {
-        const editButtons = document.querySelectorAll('.edit-user-btn');
-        const form = document.getElementById('editUserForm');
+        // ======== DYNAMIC FORM LABEL (Form Tambah) ========
+        const roleSelect = document.getElementById('roleName');
+        const input = document.getElementById('dynamicField');
+        const label = document.getElementById('dynamicLabel');
 
-        const roleSelect = document.getElementById('edit-roleName');
+        roleSelect.addEventListener('change', function () {
+            const role = this.value;
+
+            if (role === 'mahasiswa') {
+                label.innerText = 'Tahun Angkatan';
+                input.placeholder = 'Masukkan Tahun Angkatan Mahasiswa';
+            } else if (role === 'dosen') {
+                label.innerText = 'Status Dosen';
+                input.placeholder = 'Masukkan Status Dosen: Tetap/Tidak Tetap';
+            } else if (role === 'admin') {
+                label.innerText = 'Divisi';
+                input.placeholder = 'Masukkan Divisi Proyek: A/B/C...';
+            } else {
+                label.innerText = 'Keterangan';
+                input.placeholder = '';
+            }
+        });
+
+        // ======== FUNGSI PENDUKUNG UNTUK LABEL DINAMIS DI MODAL EDIT ========
+        const statusGroup = document.getElementById('edit-status-group');
+        const statusSelect = document.getElementById('edit-status');
+        const form = document.getElementById('editUserForm');
         const dynamicLabel = document.getElementById('edit-dynamicLabel');
         const dynamicField = document.getElementById('edit-dynamicField');
 
@@ -347,117 +383,60 @@
             if (role === 'mahasiswa') {
                 dynamicLabel.innerText = 'Tahun Angkatan';
                 dynamicField.placeholder = 'Masukkan Tahun Angkatan Mahasiswa';
-            } else if (role === 'dosen') {
+                statusGroup.style.display = 'block';
+            } else {
+                statusGroup.style.display = 'none';
+            }
+
+            if (role === 'dosen') {
                 dynamicLabel.innerText = 'Status Dosen';
                 dynamicField.placeholder = 'Masukkan Status Dosen: Tetap/Tidak Tetap';
             } else if (role === 'admin') {
                 dynamicLabel.innerText = 'Divisi';
                 dynamicField.placeholder = 'Masukkan Divisi Proyek: A/B/C...';
-            } else {
+            } else if (role !== 'mahasiswa') {
                 dynamicLabel.innerText = 'Keterangan';
                 dynamicField.placeholder = '';
             }
         }
 
-        // Saat tombol edit diklik
-        editButtons.forEach(button => {
-            button.addEventListener('click', function () {
-                const id = this.dataset.id;
-                const userId = this.dataset.userid;
-                const nama = this.dataset.nama;
-                const email = this.dataset.email;
-                const role = this.dataset.role;
-                const divisi = this.dataset.divisi;
-                const action = this.dataset.action;
+        // ======== PASANG ULANG LISTENER UPDATE/DELETE SAAT TABLE DIPERBARUI ========
+        function attachButtonListeners() {
+            // Tombol Edit
+            document.querySelectorAll('.edit-user-btn').forEach(button => {
+                button.addEventListener('click', function () {
+                    const role = this.dataset.role;
 
-                form.action = action;
+                    form.action = this.dataset.action;
+                    document.getElementById('edit-id').value = this.dataset.id;
+                    document.getElementById('edit-userId').value = this.dataset.userid;
+                    document.getElementById('edit-nama').value = this.dataset.nama;
+                    document.getElementById('edit-email').value = this.dataset.email;
+                    document.getElementById('edit-roleName').value = role;
+                    document.getElementById('edit-dynamicField').value = this.dataset.divisi;
+                    document.getElementById('edit-password').value = '';
 
-                document.getElementById('edit-id').value = id;
-                document.getElementById('edit-userId').value = userId;
-                document.getElementById('edit-nama').value = nama;
-                document.getElementById('edit-email').value = email;
-                document.getElementById('edit-roleName').value = role;
-                document.getElementById('edit-dynamicField').value = divisi;
-                document.getElementById('edit-password').value = '';
-
-                updateDynamicLabel(role); // ⬅️ Ubah label sesuai role saat modal dibuka
+                    // Tampilkan status jika mahasiswa
+                    updateDynamicLabel(role);
+                    if (role === 'mahasiswa') {
+                        statusSelect.value = this.dataset.status || '';
+                    } else {
+                        statusSelect.value = '';
+                    }
+                });
             });
-        });
 
-        // Saat dropdown role diubah
-        roleSelect.addEventListener('change', function () {
-            const selectedRole = this.value;
-            updateDynamicLabel(selectedRole); // ⬅️ Ubah label saat role diganti di modal
-            if (selectedRole === 'mahasiswa') {
-                dynamicField.value = ''; // Kosongkan field jika role mahasiswa
-            } else if (selectedRole === 'dosen') {
-                dynamicField.value = ''; // Kosongkan field jika role dosen
-            } else if (selectedRole === 'admin') {
-                dynamicField.value = ''; // Kosongkan field jika role admin
-            }
-        });
-    });
-
-    const statusGroup = document.getElementById('edit-status-group');
-    const statusSelect = document.getElementById('edit-status');
-
-    function updateDynamicLabel(role) {
-        if (role === 'mahasiswa') {
-            dynamicLabel.innerText = 'Tahun Angkatan';
-            dynamicField.placeholder = 'Masukkan Tahun Angkatan Mahasiswa';
-            statusGroup.style.display = 'block'; // ✅ Tampilkan kolom status
-        } else {
-            statusGroup.style.display = 'none'; // ✅ Sembunyikan jika bukan mahasiswa
+            // Tombol Delete
+            document.querySelectorAll('.delete-user-btn').forEach(button => {
+                button.addEventListener('click', function () {
+                    const deleteForm = document.getElementById('deleteUserForm');
+                    deleteForm.action = `/users/${this.dataset.id}`;
+                    document.getElementById('userToDelete').textContent = this.dataset.nama;
+                });
+            });
         }
 
-        if (role === 'dosen') {
-            dynamicLabel.innerText = 'Status Dosen';
-            dynamicField.placeholder = 'Masukkan Status Dosen: Tetap/Tidak Tetap';
-        } else if (role === 'admin') {
-            dynamicLabel.innerText = 'Divisi';
-            dynamicField.placeholder = 'Masukkan Divisi Proyek: A/B/C...';
-        } else if (role !== 'mahasiswa') {
-            dynamicLabel.innerText = 'Keterangan';
-            dynamicField.placeholder = '';
-        }
-    }
-
-    // Saat tombol edit ditekan
-    document.querySelectorAll('.edit-user-btn').forEach(button => {
-        button.addEventListener('click', function () {
-            const role = this.dataset.role;
-            updateDynamicLabel(role);
-
-            // Isikan nilai status jika mahasiswa
-            if (role === 'mahasiswa') {
-                statusSelect.value = this.dataset.status || '';
-            } else {
-                statusSelect.value = '';
-            }
-        });
-    });
-
-
-    //modal Hapus
-    document.addEventListener('DOMContentLoaded', function () {
-        const deleteButtons = document.querySelectorAll('.delete-user-btn');
-        const deleteForm = document.getElementById('deleteUserForm');
-        const userToDelete = document.getElementById('userToDelete');
-
-        deleteButtons.forEach(button => {
-            button.addEventListener('click', function () {
-                const userId = this.dataset.id;
-                const nama = this.dataset.nama;
-                deleteForm.action = `/users/${userId}`;
-                userToDelete.textContent = nama;
-            });
-        });
-    });
-
-
-
-    //Filtering
-    document.addEventListener('DOMContentLoaded', function () {
+        // ======== PAGINATION & FILTERING ========
         const rowsPerPage = 10;
         const table = document.getElementById('userTable');
         const tbody = table.querySelector('tbody');
@@ -474,6 +453,8 @@
             const end = start + rowsPerPage;
             tbody.innerHTML = '';
             filteredRows.slice(start, end).forEach(row => tbody.appendChild(row));
+
+            attachButtonListeners(); // ⬅️ Pasang ulang setiap render
         }
 
         function updatePagination(filteredRows) {
@@ -509,11 +490,30 @@
 
         searchInput.addEventListener('keyup', filterRows);
 
-        // Inisialisasi
+        // Inisialisasi pertama
         filterRows();
-    });
 
+        // ======== TOAST NOTIFIKASI ========
+        const toastElement = document.getElementById('toastMessage');
+        const toastBody = document.getElementById('toastBody');
+        const toast = new bootstrap.Toast(toastElement);
+
+        @if (session('success'))
+            toastBody.innerText = "{{ session('success') }}";
+            toastElement.classList.remove('bg-danger');
+            toastElement.classList.add('bg-success');
+            toast.show();
+        @endif
+
+        @if (session('error'))
+            toastBody.innerText = "{{ session('error') }}";
+            toastElement.classList.remove('bg-success');
+            toastElement.classList.add('bg-danger');
+            toast.show();
+        @endif
+    });
 </script>
+
 
 
 

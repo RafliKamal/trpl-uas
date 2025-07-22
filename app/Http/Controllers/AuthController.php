@@ -89,7 +89,7 @@ class AuthController extends Controller
 }
 
 
-  public function login(Request $request)
+public function login(Request $request)
 {
     $request->validate([
         'userId' => 'required',
@@ -98,8 +98,14 @@ class AuthController extends Controller
 
     $user = User::where('userId', $request->userId)->first();
 
+    // Cek user tidak ditemukan
     if (!$user || !Hash::check($request->password, $user->password)) {
         return response()->json(['message' => 'Login gagal'], 401);
+    }
+
+    // Cek status login
+    if ($user->statusLogin === 'pending') {
+        return response()->json(['message' => 'Akun Anda belum diverifikasi oleh admin'], 403);
     }
 
     $token = $user->createToken('auth_token')->plainTextToken;

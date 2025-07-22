@@ -46,7 +46,8 @@ class SessionController extends Controller
 
         return redirect('/users');
     } else {
-        return back()->withErrors(['login' => 'Login gagal, periksa kembali informasi akun Anda.']);
+        return back()->with('error', 'Login gagal, periksa kembali informasi akun Anda.');
+
     }
 }
 

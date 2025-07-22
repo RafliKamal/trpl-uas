@@ -281,28 +281,72 @@ class UserController extends Controller
         return response()->json(['message' => 'Role tidak dikenali'], 400);
     }
 
-    public function searchUser(Request $request)
-    {
-        $keyword = $request->input('keyword');
+public function searchUser(Request $request)
+{
+    $keyword = $request->input('keyword');
+    $results = [];
 
-        $results = [];
+    // Mahasiswa
+    $mhs = Mahasiswa::with('user')->where(function ($query) use ($keyword) {
+        $query->where('nim', 'like', "%$keyword%")
+              ->orWhere('nama', 'like', "%$keyword%");
+    })->get()->map(function ($mhs) {
+        return [
+            'id' => $mhs->user->id ?? null,
+            'userId' => $mhs->user->userId ?? null,
+            'nama' => $mhs->nama,
+            'email' => $mhs->email,
+            'roleName' => 'mahasiswa',
+            'statusLogin' => $mhs->user->statusLogin ?? null,
+            'divisiOrStatus' => $mhs->thnAngkatan,
+            'statusMahasiswa' => $mhs->status,
+        ];
+    });
 
-        // Cari di mahasiswa
-        $mhs = Mahasiswa::where('nim', 'like', "%$keyword%")
-            ->orWhere('nama', 'like', "%$keyword%")
-            ->get();
-        if ($mhs->count())
-            $results['mahasiswa'] = $mhs;
+    if ($mhs->count()) $results['mahasiswa'] = $mhs;
 
-        // Cari di dosen
-        $dsn = Dosen::where('nidn', 'like', "%$keyword%")
-            ->orWhere('nama', 'like', "%$keyword%")
-            ->get();
-        if ($dsn->count())
-            $results['dosen'] = $dsn;
+    // Dosen
+    $dsn = Dosen::with('user')->where(function ($query) use ($keyword) {
+        $query->where('nidn', 'like', "%$keyword%")
+              ->orWhere('nama', 'like', "%$keyword%");
+    })->get()->map(function ($dsn) {
+        return [
+            'id' => $dsn->user->id ?? null,
+            'userId' => $dsn->user->userId ?? null,
+            'nama' => $dsn->nama,
+            'email' => $dsn->email,
+            'roleName' => 'dosen',
+            'statusLogin' => $dsn->user->statusLogin ?? null,
+            'divisiOrStatus' => $dsn->status,
+            'statusMahasiswa' => null,
+        ];
+    });
 
-        return response()->json($results ?: ['message' => 'Tidak ditemukan']);
-    }
+    if ($dsn->count()) $results['dosen'] = $dsn;
+
+    // Admin
+    $admins = Admin::with('user')->where(function ($query) use ($keyword) {
+        $query->where('nama', 'like', "%$keyword%")
+              ->orWhere('userId', 'like', "%$keyword%");
+    })->get()->map(function ($admin) {
+        return [
+            'id' => $admin->user->id ?? null,
+            'userId' => $admin->user->userId ?? null,
+            'nama' => $admin->nama,
+            'email' => $admin->email,
+            'roleName' => 'admin',
+            'statusLogin' => $admin->user->statusLogin ?? null,
+            'divisiOrStatus' => $admin->divisi,
+            'statusMahasiswa' => null,
+        ];
+    });
+
+    if ($admins->count()) $results['admin'] = $admins;
+
+    return response()->json($results ?: ['message' => 'Tidak ditemukan']);
+}
+
+
 
 
 }

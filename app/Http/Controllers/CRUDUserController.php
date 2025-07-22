@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use Illuminate\Http\Request;
 use GuzzleHttp\Client;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 class CRUDUserController extends Controller
 {
@@ -19,7 +20,7 @@ class CRUDUserController extends Controller
         ]);
     }
 
-public function index()
+public function index(Request $request)
 {
     $loggedInUser = session('user');
 
@@ -29,6 +30,9 @@ public function index()
     try {
         $response = $client->get($url);
         $result = json_decode($response->getBody()->getContents(), true);
+
+        $users = collect();
+        $pendingUsers = collect();
 
         if ($result['status']) {
             $allUsers = collect($result['data'])->map(function ($user) {
@@ -44,20 +48,13 @@ public function index()
                 ];
             });
 
-            // Filter user yang sudah diverifikasi (bukan pending)
-            $users = $allUsers->reject(function ($user) {
-                return $user['statusLogin'] === 'pending';
-            });
+            // Tampilkan semua user yang tidak pending
+            $users = $allUsers->reject(fn($user) => $user['statusLogin'] === 'pending');
 
-            // Khusus admin, ambil juga user pending
+            // Hanya admin yang bisa lihat user pending
             if ($loggedInUser && $loggedInUser['roleName'] === 'admin') {
                 $pendingUsers = $allUsers->where('statusLogin', 'pending');
-            } else {
-                $pendingUsers = collect();
             }
-        } else {
-            $users = collect();
-            $pendingUsers = collect();
         }
     } catch (\Exception $e) {
         return back()->with('error', 'Gagal mengambil data user: ' . $e->getMessage());
