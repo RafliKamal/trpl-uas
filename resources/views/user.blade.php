@@ -13,7 +13,9 @@
 <body class="bg-light">
     <main class="container my-4">
         <div class="p-4 bg-white shadow rounded">
-            <h2 class="mb-4">Form Input Data User</h2>
+            @if (session('roleName') === 'admin')
+    <h2 class="mb-4">Form Input Data User</h2>
+
             @if (session('success'))
                 <div class="alert alert-success">
                     {{ session('success') }}
@@ -83,6 +85,7 @@
                 </div>
             </form>
 
+@endif
             <form method="POST" action="/logout" style="display: inline;">
                 @csrf
                 <button type="submit" class="btn btn-danger">Logout</button>
@@ -116,21 +119,31 @@
                             <td class="user-nama">{{ $data['nama'] }}</td>
                             <td class="user-role">{{ $data['roleName'] }}</td>
                             <td class="user-status">{{ $data['statusLogin'] }}</td>
-                            <td class="text-center">
-                                <button class="btn btn-warning btn-sm edit-user-btn" data-id="{{ $data['id'] }}"
-                                    data-userid="{{ $data['userId'] }}" data-nama="{{ $data['nama'] }}"
-                                    data-email="{{ $data['email'] }}" data-role="{{ $data['roleName'] }}"
-                                    data-divisi="{{ $data['divisiOrStatus'] }}"
-                                    data-status="{{ $data['statusMahasiswa'] ?? '' }}"
-                                    data-action="{{ url('/users/' . $data['id']) }}" data-bs-toggle="modal"
-                                    data-bs-target="#editUserModal">
-                                    Update
-                                </button>
-                                <button type="button" class="btn btn-sm btn-danger delete-user-btn"
-                                    data-id="{{ $data['id'] }}" data-nama="{{ $data['nama'] }}" data-bs-toggle="modal"
-                                    data-bs-target="#deleteUserModal">
-                                    Delete
-                                </button>
+                  
+                               <td class="text-center">
+    {{-- Tampilkan tombol Edit jika Admin atau user yang sedang login adalah pemilik data --}}
+    @if (session('roleName') === 'admin' || session('userId') === $data['userId'])
+        <button class="btn btn-warning btn-sm edit-user-btn" data-id="{{ $data['id'] }}"
+            data-userid="{{ $data['userId'] }}" data-nama="{{ $data['nama'] }}"
+            data-email="{{ $data['email'] }}" data-role="{{ $data['roleName'] }}"
+            data-divisi="{{ $data['divisiOrStatus'] }}"
+            data-status="{{ $data['statusMahasiswa'] ?? '' }}"
+            data-action="{{ url('/users/' . $data['id']) }}" data-bs-toggle="modal"
+            data-bs-target="#editUserModal">
+            Update
+        </button>
+    @endif
+
+    {{-- Tampilkan tombol Delete hanya jika Admin --}}
+    @if (session('roleName') === 'admin')
+        <button type="button" class="btn btn-sm btn-danger delete-user-btn"
+            data-id="{{ $data['id'] }}" data-nama="{{ $data['nama'] }}" data-bs-toggle="modal"
+            data-bs-target="#deleteUserModal">
+            Delete
+        </button>
+    @endif
+
+
                             </td>
                         </tr>
                     @endforeach

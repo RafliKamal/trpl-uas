@@ -24,9 +24,20 @@ class SessionController extends Controller
 
         if ($response->successful()) {
             $data = $response->json();
-            Session::put('token', $data['access_token']);
+       $token = $data['access_token'];
+Session::put('token', $token);
+Session::put('userId', $data['userId']);
+Session::put('roleName', $data['roleName']);
 
-            return redirect('/users'); // ✅ Redirect ke /user
+
+// Ambil data user login
+$userResponse = Http::withToken($token)->get("https://kamal.ricakagus.id/api/me");
+
+if ($userResponse->successful()) {
+    Session::put('user', $userResponse->json()); // ✅ Simpan user ke session
+    return redirect('/users'); // ✅ Redirect ke /user
+}
+
         } else {
             return back()->withErrors(['login' => 'Login gagal, periksa kembali informasi akun Anda.']);
         }

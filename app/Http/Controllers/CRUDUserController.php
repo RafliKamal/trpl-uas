@@ -13,44 +13,45 @@ class CRUDUserController extends Controller
         return new Client([
             'headers' => [
                 'Authorization' => 'Bearer ' . session('token'),
-                'Content-Type'  => 'application/json',
-                'Accept'        => 'application/json'
+                'Content-Type' => 'application/json',
+                'Accept' => 'application/json'
             ]
         ]);
     }
 
-   public function index()
-{
-    $client = $this->apiClient();
-    $url = "https://kamal.ricakagus.id/api/users";
+    public function index()
+    {
+        $loggedInUser = session('user');
 
-    try {
-        $response = $client->get($url);
-        $result = json_decode($response->getBody()->getContents(), true);
+        $client = $this->apiClient();
+        $url = "https://kamal.ricakagus.id/api/users";
 
-        if ($result['status']) {
-            $users = collect($result['data'])->map(function ($user) {
-                return [
-                    'id' => $user['id'],
-                    'userId' => $user['userId'],
-                    'roleName' => $user['roleName'],
-                    'statusLogin' => $user['statusLogin'],
-                    'nama' => $user['admin']['nama'] ?? $user['dosen']['nama'] ?? $user['mahasiswa']['nama'] ?? null,
-                    'email' => $user['admin']['email'] ?? $user['dosen']['email'] ?? $user['mahasiswa']['email'] ?? null,
-                    'divisiOrStatus' => $user['admin']['divisi'] ?? $user['dosen']['status'] ?? $user['mahasiswa']['thnAngkatan'] ?? null,
-                    'statusMahasiswa' => $user['mahasiswa']['status'] ?? null,
-                ];
-            });
-        } else {
-            $users = collect();
+        try {
+            $response = $client->get($url);
+            $result = json_decode($response->getBody()->getContents(), true);
+
+            if ($result['status']) {
+                $users = collect($result['data'])->map(function ($user) {
+                    return [
+                        'id' => $user['id'],
+                        'userId' => $user['userId'],
+                        'roleName' => $user['roleName'],
+                        'statusLogin' => $user['statusLogin'],
+                        'nama' => $user['admin']['nama'] ?? $user['dosen']['nama'] ?? $user['mahasiswa']['nama'] ?? null,
+                        'email' => $user['admin']['email'] ?? $user['dosen']['email'] ?? $user['mahasiswa']['email'] ?? null,
+                        'divisiOrStatus' => $user['admin']['divisi'] ?? $user['dosen']['status'] ?? $user['mahasiswa']['thnAngkatan'] ?? null,
+                        'statusMahasiswa' => $user['mahasiswa']['status'] ?? null,
+                    ];
+                });
+            } else {
+                $users = collect();
+            }
+        } catch (\Exception $e) {
+            return back()->with('error', 'Gagal mengambil data user: ' . $e->getMessage());
         }
-    } catch (\Exception $e) {
-        return back()->with('error', 'Gagal mengambil data user: ' . $e->getMessage());
+
+        return view('user', compact('users', 'loggedInUser'));
     }
-
-    return view('user', compact('users'));
-}
-
 
     public function create()
     {
@@ -119,6 +120,10 @@ class CRUDUserController extends Controller
     {
         $client = $this->apiClient();
         $url = "https://kamal.ricakagus.id/api/users/$id";
+
+        if (session('roleName') !== 'admin' && session('userId') !== $request->userId) {
+            return redirect()->to('users')->with('error', 'Anda tidak diizinkan mengubah data user lain.');
+        }
 
         $parameter = [
             'userId' => $request->userId,
