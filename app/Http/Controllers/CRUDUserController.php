@@ -33,6 +33,7 @@ class CRUDUserController extends Controller
                 $userData['nama'] = $user->mahasiswa->nama;
                 $userData['email'] = $user->mahasiswa->email;
                 $userData['divisiOrStatus'] = $user->mahasiswa->thnAngkatan;
+                $userData['statusMahasiswa'] = $user->mahasiswa->status; // ← Tambahan
             }
 
             return $userData;
@@ -129,6 +130,7 @@ class CRUDUserController extends Controller
 
         if ($request->roleName === 'mahasiswa') {
             $parameter['thnAngkatan'] = $request->divisiOrStatus;
+            $parameter['status'] = $request->status;
         } elseif ($request->roleName === 'dosen') {
             $parameter['status'] = $request->divisiOrStatus;
         } elseif ($request->roleName === 'admin') {

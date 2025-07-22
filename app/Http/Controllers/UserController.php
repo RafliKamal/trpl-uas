@@ -176,6 +176,7 @@ class UserController extends Controller
     // Tambahkan validasi keterangan sesuai role
     if ($request->roleName === 'mahasiswa') {
         $rules['thnAngkatan'] = 'required|string';
+        $rules['status'] = 'required|string';
     } elseif ($request->roleName === 'dosen') {
         $rules['status'] = 'required|string';
     } elseif ($request->roleName === 'admin') {
@@ -218,6 +219,7 @@ class UserController extends Controller
             'nama' => $request->nama,
             'email' => $request->email,
             'thnAngkatan' => $request->thnAngkatan,
+            'status' => $request->status,
         ]);
     }
 
