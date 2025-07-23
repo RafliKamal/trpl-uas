@@ -188,6 +188,11 @@ public function verify($id)
             'email' => $request->email,
             'roleName' => $request->roleName,
         ];
+        
+          // ✅ Tambahkan ini untuk menyertakan password jika diisi
+    if (!empty($request->password)) {
+        $parameter['password'] = $request->password;
+    }
 
         if ($request->roleName === 'mahasiswa') {
             $parameter['thnAngkatan'] = $request->divisiOrStatus;
