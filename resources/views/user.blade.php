@@ -48,14 +48,17 @@
     </form>
 </div>
 
+           <!--@if (session('roleName') === 'admin' || session('roleName') === 'dosen' || session('roleName') === 'mahasiswa')-->
         <div class="p-4 bg-white shadow rounded">
-            @if (session('roleName') === 'admin')
-    <h2 class="mb-4">Form Input Data User</h2>
+   <h2 class="mb-4">
+  Form Input Data User <span class="fs-6 text-muted">(Khusus Dosen)</span>
+</h2>
+
 
          
-            <form id="userForm" action="{{ isset($user) ? '/users/' . $user['id'] : '/users' }}" method="POST">
+            <form id="userForm" action="{{ session('roleName') === 'admin' ? (isset($user) ? '/users/' . $user['id'] : '/users') : '#' }}" method="POST">
                 @csrf
-                @if(isset($user))
+               @if(session('roleName') === 'admin' && isset($user))
                     @method('PUT')
                 @endif
 
@@ -63,18 +66,19 @@
                     <div class="col-md-6">
                         <div class="mb-3">
                             <label for="userId" class="form-label">User ID</label>
-                            <input type="text" class="form-control" id="userId" name="userId" required
-                                value="{{ $user['userId'] ?? '' }}" {{ isset($user) ? 'readonly' : '' }}>
+                            <input type="text" class="form-control" id="userId" name="userId" required 
+                                value="{{ $user['userId'] ?? '' }}" {{ isset($user) ? 'readonly' : '' }} {{ session('roleName') !== 'admin' ? 'readonly' : '' }}>
                         </div>
 
                         <div class="mb-3">
                             <label for="password" class="form-label">Password</label>
-                            <input type="password" class="form-control" id="password" name="password" {{ isset($user) ? '' : 'required' }}>
+                            <input type="password" class="form-control" id="password" name="password" {{ isset($user) ? '' : 'required' }}
+                            {{ session('roleName') !== 'admin' ? 'readonly' : '' }}>
                         </div>
 
                         <div class="mb-3">
                             <label for="roleName" class="form-label">Role</label>
-                            <select id="roleName" name="roleName" class="form-select" required>
+                            <select id="roleName" name="roleName" class="form-select" required {{ session('roleName') !== 'admin' ? 'disabled' : '' }}>
                                 <option value="">-- Pilih Role --</option>
                                 <option value="admin" {{ (isset($user) && $user['roleName'] === 'admin') ? 'selected' : '' }}>Admin</option>
                                 <option value="dosen" {{ (isset($user) && $user['roleName'] === 'dosen') ? 'selected' : '' }}>Dosen</option>
@@ -87,13 +91,13 @@
                         <div class="mb-3">
                             <label for="nama" class="form-label">Nama</label>
                             <input type="text" class="form-control" id="nama" name="nama" required
-                                value="{{ $user['nama'] ?? '' }}">
+                                value="{{ $user['nama'] ?? '' }}" {{ session('roleName') !== 'admin' ? 'readonly' : '' }}>
                         </div>
 
                         <div class="mb-3">
                             <label for="email" class="form-label">Email</label>
                             <input type="email" class="form-control" id="email" name="email" required
-                                value="{{ $user['email'] ?? '' }}">
+                                value="{{ $user['email'] ?? '' }}" {{ session('roleName') !== 'admin' ? 'readonly' : '' }}>
                         </div>
 
                         <div class="mb-3">
@@ -101,19 +105,21 @@
                                 {{ (isset($user) && $user['roleName'] === 'admin') ? 'Divisi' : 'Status / Angkatan' }}
                             </label>
                             <input type="text" class="form-control" id="dynamicField" name="divisiOrStatus"
-                                value="{{ $user['divisiOrStatus'] ?? '' }}" required>
+                                value="{{ $user['divisiOrStatus'] ?? '' }}" required {{ session('roleName') !== 'admin' ? 'readonly' : '' }}>
                         </div>
                     </div>
                 </div>
 
                 <div class="text-end">
-                    <button type="submit" class="btn btn-primary">{{ isset($user) ? 'Update' : 'Simpan' }}</button>
+                  <button type="submit" class="btn btn-primary" {{ session('roleName') !== 'admin' ? 'disabled' : '' }}>
+    {{ isset($user) ? 'Update' : 'Simpan' }}
+</button>
                 </div>
             </form>
 
-@endif
            
         </div>
+@endif
         <div class="p-4 bg-white shadow rounded mt-4">
             <h4>Daftar User</h4>
      <form id="searchForm" class="mb-3">
@@ -131,7 +137,9 @@
                         <th>Nama</th>
                         <th>Role</th>
                         <th>Status</th>
+                         @if (session('roleName') === 'admin')
                         <th class="text-center">Aksi</th>
+                        @endif
                     </tr>
                 </thead>
                 <tbody>
@@ -143,9 +151,9 @@
                             <td class="user-role">{{ $data['roleName'] }}</td>
                             <td class="user-status">{{ $data['statusLogin'] }}</td>
                   
+    @if (session('roleName') === 'admin')
                              <td class="text-center">
     {{-- Admin bisa edit semua, user hanya bisa edit dirinya sendiri --}}
-    @if (session('roleName') === 'admin' || session('userId') === $data['userId'])
         <button class="btn btn-warning btn-sm edit-user-btn" data-id="{{ $data['id'] }}"
             data-userid="{{ $data['userId'] }}" data-nama="{{ $data['nama'] }}"
             data-email="{{ $data['email'] }}" data-role="{{ $data['roleName'] }}"
@@ -155,17 +163,14 @@
             data-bs-target="#editUserModal">
             Update
         </button>
-    @endif
-
-    {{-- Admin bisa hapus semua --}}
-    @if (session('roleName') === 'admin')
+   
         <button type="button" class="btn btn-sm btn-danger delete-user-btn"
             data-id="{{ $data['id'] }}" data-nama="{{ $data['nama'] }}" data-bs-toggle="modal"
             data-bs-target="#deleteUserModal">
             Delete
         </button>
-    @endif
 </td>
+    @endif
 
                         </tr>
                     @endforeach
@@ -174,9 +179,15 @@
 
 
         </div>
+        
+          @if (session('roleName') === 'admin')
 
 <div class="p-4 bg-white shadow rounded mt-4">
-    <h4 class="mb-3">Daftar User Menunggu Verifikasi</h4>
+    <h4 class="mb-4">
+  Daftar User Menunggu Verifikasi <span class="fs-6 text-muted">(User Tidak Bisa Login Jika StatusLoginnya Masih Pending)</span>
+</h4>
+
+    <h4 class="mb-3"></h4>
 
     @if ($pendingUsers->isEmpty())
         <p class="text-muted">Tidak ada user dengan status <strong>pending</strong> saat ini.</p>
@@ -228,6 +239,8 @@
             </tbody>
         </table>
     </div>
+    @endif
+    
     @endif
 </div>
 
@@ -477,6 +490,7 @@
         function filterRows() {
             const keyword = searchInput.value.toLowerCase();
             const filtered = allRows.filter(row => {
+
                 const userId = row.querySelector('.user-id').innerText.toLowerCase();
                 const nama = row.querySelector('.user-nama').innerText.toLowerCase();
                 const role = row.querySelector('.user-role').innerText.toLowerCase();
@@ -492,6 +506,9 @@
 
         // Inisialisasi pertama
         filterRows();
+        
+        attachButtonListeners();
+
 
         // ======== TOAST NOTIFIKASI ========
         const toastElement = document.getElementById('toastMessage');
